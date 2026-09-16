@@ -36,8 +36,8 @@ namespace BeyondDynamoInstaller
     {
         public const string GitHubAPI = @"https://api.github.com";
 
-        public const string Owner = "JoelvanHerwaarden";
-        public const string Repo = "BeyondDynamo2.X";
+        public const string Owner = "IamCleatus";
+        public const string Repo = "BeyondDynamo3.X";
         public static string ReleaseId = null;
         public static Dictionary<string, string> Assets = null;
 

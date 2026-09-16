@@ -1,0 +1,14 @@
+{
+  "name": "BeyondDynamo",
+  "version": "3.0.0",
+  "description": "Productivity tools for Dynamo graph cleanup, node management, and workspace operations.",
+  "engine_version": "2.18.0",
+  "license": "MIT",
+  "repository": "https://github.com/IamCleatus/BeyondDynamo3.X",
+  "keywords": [
+    "dynamo",
+    "revit",
+    "view-extension",
+    "productivity"
+  ]
+}

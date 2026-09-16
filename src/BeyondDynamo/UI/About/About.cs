@@ -65,7 +65,7 @@ namespace BeyondDynamo.UI.About
         #region GitHub Label Events
         private void GitHub_Label_Click(object sender, EventArgs e)
         {
-            System.Diagnostics.Process.Start("www.github.com/JoelvanHerwaarden/BeyondDynamo2.X");
+            System.Diagnostics.Process.Start("www.github.com/IamCleatus/BeyondDynamo3.X");
         }
         private void GitHub_Label_MouseEnter(object sender, EventArgs e)
         {

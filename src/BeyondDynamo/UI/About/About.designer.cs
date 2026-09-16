@@ -60,7 +60,7 @@
             this.GitHub_Label.Name = "GitHub_Label";
             this.GitHub_Label.Size = new System.Drawing.Size(209, 17);
             this.GitHub_Label.TabIndex = 7;
-            this.GitHub_Label.Text = "Beyond Dynamo 2.X GitHub";
+            this.GitHub_Label.Text = "Beyond Dynamo 3.X GitHub";
             this.GitHub_Label.Click += new System.EventHandler(this.GitHub_Label_Click);
             this.GitHub_Label.MouseEnter += new System.EventHandler(this.GitHub_Label_MouseEnter);
             this.GitHub_Label.MouseLeave += new System.EventHandler(this.GitHub_Label_MouseLeave);

@@ -33,7 +33,7 @@ namespace BeyondDynamo
         /// <summary>
         /// FilePath for Config File
         /// </summary>
-        private string configFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Dynamo\\BeyondDynamoSettings\\beyondDynamo2Config.json");
+        private string configFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Dynamo\\BeyondDynamoSettings\\beyondDynamo3Config.json");
 
         /// <summary>
         /// The Configurations for the Plug-in
@@ -43,7 +43,7 @@ namespace BeyondDynamo
         /// <summary>
         /// Request URL for the Releases
         /// </summary>
-        private const string RequestUri = "https://api.github.com/repos/JoelvanHerwaarden/BeyondDynamo2.X/releases";
+        private const string RequestUri = "https://api.github.com/repos/IamCleatus/BeyondDynamo3.X/releases";
 
         /// <summary>
         /// This will get the Latest Version
@@ -243,7 +243,7 @@ namespace BeyondDynamo
             LatestVersion = new MenuItem { Header = "New version available! Download now!" };
             LatestVersion.Click += (sender, args) =>
             {
-                System.Diagnostics.Process.Start("www.github.com/JoelvanHerwaarden/BeyondDynamo2.X/releases");
+                System.Diagnostics.Process.Start("www.github.com/IamCleatus/BeyondDynamo3.X/releases");
             };
             if (this.currentVersion < this.latestVersion)
             {
