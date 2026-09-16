@@ -1,0 +1,20 @@
+﻿{
+    "name":  "BeyondDynamo",
+    "version":  "3.0.0",
+    "description":  "Dynamo view extension for Revit 2026 compatibility",
+    "author":  "IamCleatus",
+    "license":  "MIT",
+    "repository_url":  "https://github.com/IamCleatus/BeyondDynamo3.X",
+    "keywords":  [
+                     "dynamo",
+                     "revit",
+                     "view-extension",
+                     "productivity"
+                 ],
+    "dependencies":  {
+
+                     },
+    "revit_version":  "2026",
+    "dynamo_version":  "2.17.0.3493",
+    "package_type":  "extension"
+}

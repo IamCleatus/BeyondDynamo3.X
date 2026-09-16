@@ -1,4 +1,4 @@
-﻿<ViewExtensionDefinition>
+<ViewExtensionDefinition>
   <AssemblyPath>..\bin\BeyondDynamo.dll</AssemblyPath>
   <TypeName>BeyondDynamo.BeyondDynamoExtension</TypeName>
 </ViewExtensionDefinition>

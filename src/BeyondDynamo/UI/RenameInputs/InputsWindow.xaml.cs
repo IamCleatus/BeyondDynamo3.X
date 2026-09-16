@@ -5,6 +5,7 @@ using ProtoCore.AST.AssociativeAST;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -40,10 +41,12 @@ namespace BeyondDynamo.UI
 
         public InputsWindow(NodeViewModel nodeView, bool pythonNode)
         {
+            if (nodeView == null) throw new ArgumentNullException(nameof(nodeView));
+
             InitializeComponent();
             this.Owner = BeyondDynamoUtils.DynamoWindow;
             this.Title = "Rename Inputs for " + nodeView.NodeLogic.Name;
-            this.Node = nodeView.NodeLogic;
+            this.Node = nodeView.NodeLogic ?? throw new InvalidOperationException("NodeViewModel.NodeLogic is null.");
             this.NodeView = nodeView;
             GetInOutputs(this.Node, pythonNode);
             PopulateWindow(this.Inputs, this.Output);
@@ -51,28 +54,30 @@ namespace BeyondDynamo.UI
 
         private void GetInOutputs(NodeModel node, bool pythonNode)
         {
+            if (node == null) throw new ArgumentNullException(nameof(node));
+
             GetInOutConnectors(node);
             this.Inputs = new List<string>();
             this.InputToolTips = new List<string>();
-            for(int i=0; i< node.InPorts.Count();i++)
+            for (int i = 0; i < node.InPorts.Count; i++)
             {
                 PortModel portModel = node.InPorts[i];
                 this.Inputs.Add(portModel.Name);
-                string toolTip = portModel.ToolTip;
+                string toolTip = portModel.ToolTip ?? string.Empty;
                 if (pythonNode)
                 {
-                    if (!toolTip.Contains("You can reference"))
+                    if (toolTip.IndexOf("You can reference", StringComparison.OrdinalIgnoreCase) < 0)
                     {
-                        toolTip += string.Format("\nYou can reference this input with IN[{0}] in the Python Script", i.ToString());
+                        toolTip += string.Format(CultureInfo.InvariantCulture, "\nYou can reference this input with IN[{0}] in the Python Script", i);
                     }
                 }
                 this.InputToolTips.Add(toolTip);
             }
-            foreach(PortModel portModel in node.OutPorts)
+            foreach (PortModel portModel in node.OutPorts)
             {
                 this.Output = portModel.Name;
-                string toolTip = portModel.ToolTip;
-                if (!toolTip.Contains("You can reference"))
+                string toolTip = portModel.ToolTip ?? string.Empty;
+                if (toolTip.IndexOf("You can reference", StringComparison.OrdinalIgnoreCase) < 0)
                 {
                     toolTip += "\nYou can reference this input with OUT in the Python Script";
                 }
@@ -82,11 +87,13 @@ namespace BeyondDynamo.UI
 
         private void GetInOutConnectors(NodeModel node)
         {
+            if (node == null) throw new ArgumentNullException(nameof(node));
+
             this.StartConnectorPorts = new List<PortModel>();
             this.EndConnectorPort = null;
-            foreach(PortModel portModel in node.InPorts)
+            foreach (PortModel portModel in node.InPorts)
             {
-                if (portModel.Connectors.Count() != 0)
+                if (portModel.Connectors.Count != 0)
                 {
                     StartConnectorPorts.Add(portModel.Connectors.Last().Start);
                 }
@@ -96,7 +103,7 @@ namespace BeyondDynamo.UI
                 }
             }
             PortModel outport = node.OutPorts.Last();
-            if(outport.Connectors.Count() != 0)
+            if (outport.Connectors.Count != 0)
             {
                 EndConnectorPort = outport.Connectors.Last().End;
             }
@@ -137,6 +144,11 @@ namespace BeyondDynamo.UI
 
         public void PopulateWindow(List<string> inputs, string output)
         {
+            if (inputs == null)
+            {
+                throw new ArgumentNullException(nameof(inputs));
+            }
+
             Label label = this.stackPanel.Children[0] as Label;
             foreach (string input in inputs)
             {

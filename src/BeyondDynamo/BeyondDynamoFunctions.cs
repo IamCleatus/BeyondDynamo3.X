@@ -68,7 +68,11 @@ namespace BeyondDynamo
             string xmlPath = Path.ChangeExtension(filePath, ".xml");
             File.Move(filePath, xmlPath);
             XmlDocument doc = new XmlDocument();
-            doc.Load(xmlPath);
+            XmlReaderSettings settings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null };
+            using (XmlReader reader = XmlReader.Create(xmlPath, settings))
+            {
+                doc.Load(reader);
+            }
 
             XmlNode sessionTraceDataNode = null;
             XmlNode parentNode = null;
@@ -139,32 +143,36 @@ namespace BeyondDynamo
         /// <param name="viewModel"></param>
         public static void ImportFromScript(DynamoViewModel viewModel)
         {
+            if (viewModel == null) throw new ArgumentNullException(nameof(viewModel));
+
             WorkspaceModel model = viewModel.Model.CurrentWorkspace;
-            System.Windows.Forms.OpenFileDialog fileDialog = new System.Windows.Forms.OpenFileDialog();
-            fileDialog.Filter = "Dynamo Files (*.dyn)|*.dyn";
-            if (fileDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            using (var fileDialog = new System.Windows.Forms.OpenFileDialog())
             {
-                //Get the selected filePath
-                string DynamoFilepath = fileDialog.FileName;
+                fileDialog.Filter = "Dynamo Files (*.dyn)|*.dyn";
+                if (fileDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                {
+                    //Get the selected filePath
+                    string DynamoFilepath = fileDialog.FileName;
 
-                string version = BeyondDynamoUtils.DynamoCoreLanguage(DynamoFilepath);
-                if (version == "XML")
-                {
-                    ImportXMLDynamo(viewModel, DynamoFilepath);
-                }
-                else if (version == "Json")
-                {
-                    ImportJsonDynamo(viewModel, DynamoFilepath);
-                }
-                else
-                {
-                    Forms.MessageBox.Show("The Selected File is not Supported", "Beyond Dynamo");
-                    return;
-                }
+                    string version = BeyondDynamoUtils.DynamoCoreLanguage(DynamoFilepath);
+                    if (version == "XML")
+                    {
+                        ImportXMLDynamo(viewModel, DynamoFilepath);
+                    }
+                    else if (version == "Json")
+                    {
+                        ImportJsonDynamo(viewModel, DynamoFilepath);
+                    }
+                    else
+                    {
+                        Forms.MessageBox.Show("The Selected File is not Supported", "Beyond Dynamo");
+                        return;
+                    }
 
-                //Zoom to the imported Script
-                DelegateCommand fitView = viewModel.FitViewCommand;
-                fitView.Execute(viewModel.CurrentSpaceViewModel);
+                    //Zoom to the imported Script
+                    DelegateCommand fitView = viewModel.FitViewCommand;
+                    fitView.Execute(viewModel.CurrentSpaceViewModel);
+                }
             }
         }
 
@@ -185,7 +193,11 @@ namespace BeyondDynamo
             //Load a XML Document from the Dynamo File\
             
             XmlDocument doc = new XmlDocument();
-            doc.Load(DynamoFilePath);
+            XmlReaderSettings settings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null };
+            using (XmlReader reader = XmlReader.Create(DynamoFilePath, settings))
+            {
+                doc.Load(reader);
+            }
 
             //Loop over the XML Elements in the Document
             foreach (XmlElement node in doc.DocumentElement)
@@ -444,19 +456,21 @@ namespace BeyondDynamo
             {
                 if (color == null)
                 {
-                    System.Windows.Forms.ColorDialog colorDialog = new System.Windows.Forms.ColorDialog();
-                    if (config.customColors != null)
+                    using (System.Windows.Forms.ColorDialog colorDialog = new System.Windows.Forms.ColorDialog())
                     {
-                        colorDialog.CustomColors = config.customColors;
-                    }
-                    if (colorDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-                    {
-                        foreach (AnnotationModel group in selectedGroups)
+                        if (config.customColors != null)
                         {
-                            string colorString = System.Drawing.ColorTranslator.ToHtml(colorDialog.Color);
-                            group.Background = colorString;
+                            colorDialog.CustomColors = config.customColors;
                         }
-                        config.customColors = colorDialog.CustomColors;
+                        if (colorDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                        {
+                            foreach (AnnotationModel group in selectedGroups)
+                            {
+                                string colorString = System.Drawing.ColorTranslator.ToHtml(colorDialog.Color);
+                                group.Background = colorString;
+                            }
+                            config.customColors = colorDialog.CustomColors;
+                        }
                     }
                 }
                 else
@@ -482,6 +496,11 @@ namespace BeyondDynamo
         /// <param name="model"></param>
         public static void CallTextEditor(DynamoModel model)
         {
+            if (model == null)
+            {
+                throw new ArgumentNullException(nameof(model));
+            }
+
             WorkspaceModel workspaceModel = model.CurrentWorkspace;
             
             //Check if there are any Notes selected
@@ -546,6 +565,10 @@ namespace BeyondDynamo
         /// <param name="model"></param>
         public static List<NodeViewModel> GetSelectedNodeViewModels(WorkspaceViewModel workspaceModel)
         {
+            if (workspaceModel == null)
+            {
+                throw new ArgumentNullException(nameof(workspaceModel));
+            }
 
             //Check if there are any Notes selected
             List<NodeViewModel> selectedNodes = new List<NodeViewModel>();
@@ -685,10 +708,23 @@ namespace BeyondDynamo
         /// <param name="extraItems"></param>
         public static void RetrievePlayerFiles(Controls.MenuItem owner, DynamoViewModel viewModel, string filePath, List<Controls.MenuItem> extraItems)
         {
+            if (owner == null)
+            {
+                throw new ArgumentNullException(nameof(owner));
+            }
+            if (viewModel == null)
+            {
+                throw new ArgumentNullException(nameof(viewModel));
+            }
+            if (extraItems == null)
+            {
+                throw new ArgumentNullException(nameof(extraItems));
+            }
+
             DynamoModel model = viewModel.Model;
 
             // Check if the Filepath is not Empty
-            if (filePath != "")
+            if (!string.IsNullOrEmpty(filePath))
             {
                 // Get all the Files from the given Directory Path, which comes out of the Configuration file
                 string[] filePaths = Directory.GetFiles(filePath);
@@ -721,14 +757,16 @@ namespace BeyondDynamo
                                     if (model.CurrentWorkspace.FileName == "")
                                     {
                                         //If there is no Filepath, show a Save as dialog
-                                        Forms.SaveFileDialog dialog = new Forms.SaveFileDialog();
-                                        dialog.FileName = "Home";
-                                        dialog.AddExtension = true;
-                                        dialog.DefaultExt = "dyn";
-                                        dialog.Filter = "Dynamo Files (*.dyn)|*.dyn";
-                                        if (Forms.DialogResult.OK == dialog.ShowDialog())
+                                        using (Forms.SaveFileDialog dialog = new Forms.SaveFileDialog())
                                         {
-                                            viewModel.SaveAsCommand.Execute(dialog.FileName);
+                                            dialog.FileName = "Home";
+                                            dialog.AddExtension = true;
+                                            dialog.DefaultExt = "dyn";
+                                            dialog.Filter = "Dynamo Files (*.dyn)|*.dyn";
+                                            if (Forms.DialogResult.OK == dialog.ShowDialog())
+                                            {
+                                                viewModel.SaveAsCommand.Execute(dialog.FileName);
+                                            }
                                         }
                                     }
                                     //If there is a Filepath, Save the File
@@ -795,7 +833,7 @@ namespace BeyondDynamo
                 {
                     string type = nodeView.NodeModel.GetType().Name;
 
-                    if(type == "PythonNode" | type == "PythonStringNode")
+                    if(type == "PythonNode" || type == "PythonStringNode")
                     {
                         InputsWindow inputsWindow = new InputsWindow(nodeView, true);
                         inputsWindow.Show();
@@ -862,12 +900,27 @@ namespace BeyondDynamo
         }
         public static void AutoNodePreviewOff(NodeModel node)
         {
+            if (node == null)
+            {
+                throw new ArgumentNullException(nameof(node));
+            }
+
             NodeViewModel nodeView = GetNodeViewModel(node);
+            if (nodeView == null)
+            {
+                return;
+            }
+
             nodeView.ToggleIsVisibleCommand.Execute(node);
             BeyondDynamoUtils.LogMessage("Turning Node preview off for " + node.Name);
         }
         public static NodeViewModel GetNodeViewModel(NodeModel obj)
         {
+            if (obj == null)
+            {
+                throw new ArgumentNullException(nameof(obj));
+            }
+
             NodeViewModel nodeViewModel = null;
             foreach(NodeViewModel nodeView in BeyondDynamoUtils.DynamoVM.CurrentSpaceViewModel.Nodes)
             {
@@ -882,6 +935,10 @@ namespace BeyondDynamo
 
         public static void ShowNodeList(ObservableCollection<NodeViewModel> nodeViewModels)
         {
+            if (nodeViewModels == null)
+            {
+                throw new ArgumentNullException(nameof(nodeViewModels));
+            }
 
             Dictionary<string, NodeView> nodeViews = BeyondDynamoUtils.NodeViewDictionary();
             foreach (NodeViewModel nodeViewModel in nodeViewModels)
@@ -920,9 +977,9 @@ namespace BeyondDynamo
         {
             DynamoModel model = BeyondDynamoUtils.DynamoVM.Model;
             WorkspaceModel workspace = model.CurrentWorkspace;
-            List<dynamic> result = ShouldFreeze(workspace.Nodes);
-            bool shouldFreeze = result[0];
-            List<NodeModel> nodes = result[1];
+            Collection<object> result = ShouldFreeze(workspace.Nodes);
+            bool shouldFreeze = (bool)result[0];
+            List<NodeModel> nodes = (List<NodeModel>)result[1];
             foreach (Dynamo.Graph.Nodes.NodeModel node in nodes)
             {
                 if (shouldFreeze)
@@ -937,9 +994,14 @@ namespace BeyondDynamo
             BeyondDynamoUtils.KeepSelection(model);
         }
 
-        public static List<dynamic> ShouldFreeze(IEnumerable<NodeModel> nodes)
+        public static Collection<object> ShouldFreeze(IEnumerable<NodeModel> nodes)
         {
-            List<dynamic> result = new List<dynamic>();
+            if (nodes == null)
+            {
+                throw new ArgumentNullException(nameof(nodes));
+            }
+
+            Collection<object> result = new Collection<object>();
             List<NodeModel> frozenNodes = new List<NodeModel>();
             List<NodeModel> unfrozenNodes = new List<NodeModel>();
             foreach (NodeModel node in nodes)
@@ -958,35 +1020,23 @@ namespace BeyondDynamo
             }
             if (frozenNodes.Count == 0)
             {
-                result = new List<dynamic>()
-                {
-                    true,
-                    unfrozenNodes
-                };
+                result.Add(true);
+                result.Add(unfrozenNodes);
             }
             else if (unfrozenNodes.Count == 0)
             {
-                result = new List<dynamic>()
-                {
-                    false,
-                    frozenNodes
-                };
+                result.Add(false);
+                result.Add(frozenNodes);
             }
             else if (frozenNodes.Count > unfrozenNodes.Count)
             {
-                result = new List<dynamic>()
-                {
-                    true,
-                    unfrozenNodes
-                };
+                result.Add(true);
+                result.Add(unfrozenNodes);
             }
             else
             {
-                result = new List<dynamic>()
-                {
-                    false,
-                    frozenNodes
-                };
+                result.Add(false);
+                result.Add(frozenNodes);
             }
             return result;
         }
@@ -1081,7 +1131,7 @@ namespace BeyondDynamo
         {
             DynamoModel model = BeyondDynamoUtils.DynamoVM.Model;
             WorkspaceModel workspace = model.CurrentWorkspace;
-            List<NodeModel> nodes = ShouldShowLabels(workspace.Nodes, out bool shouldShowLabels);
+            Collection<NodeModel> nodes = ShouldShowLabels(workspace.Nodes, out bool shouldShowLabels);
             foreach (Dynamo.Graph.Nodes.NodeModel node in nodes)
             {
                 NodeViewModel nodeView = BeyondDynamoFunctions.GetNodeViewModel(node);
@@ -1098,9 +1148,14 @@ namespace BeyondDynamo
             BeyondDynamoUtils.KeepSelection(model);
         }
 
-        public static List<NodeModel> ShouldShowLabels(IEnumerable<NodeModel> nodes, out bool shouldShowLabels)
+        public static Collection<NodeModel> ShouldShowLabels(IEnumerable<NodeModel> nodes, out bool shouldShowLabels)
         {
-            List<NodeModel> result = new List<NodeModel>();
+            if (nodes == null)
+            {
+                throw new ArgumentNullException(nameof(nodes));
+            }
+
+            Collection<NodeModel> result = new Collection<NodeModel>();
             List<NodeModel> shownNodes = new List<NodeModel>();
             List<NodeModel> hiddenNodes = new List<NodeModel>();
             foreach (NodeModel node in nodes)
@@ -1119,22 +1174,22 @@ namespace BeyondDynamo
             }
             if (shownNodes.Count == 0)
             {
-                result = hiddenNodes;
+                result = new Collection<NodeModel>(hiddenNodes);
                 shouldShowLabels = false;
             }
             else if (hiddenNodes.Count == 0)
             {
-                result = shownNodes;
+                result = new Collection<NodeModel>(shownNodes);
                 shouldShowLabels = true;
             }
             else if (shownNodes.Count > hiddenNodes.Count)
             {
-                result = hiddenNodes;
+                result = new Collection<NodeModel>(hiddenNodes);
                 shouldShowLabels = false;
             }
             else
             {
-                result = shownNodes;
+                result = new Collection<NodeModel>(shownNodes);
                 shouldShowLabels = true;
             }
             return result;

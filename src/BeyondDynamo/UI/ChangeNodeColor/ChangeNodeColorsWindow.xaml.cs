@@ -119,25 +119,26 @@ namespace BeyondDynamo.UI
         {
             Button changeColorButton = (Button)sender;
 
-            System.Windows.Forms.ColorDialog colorDialog = new System.Windows.Forms.ColorDialog();
-
-            if (config.customColors != null)
+            using (System.Windows.Forms.ColorDialog colorDialog = new System.Windows.Forms.ColorDialog())
             {
-                colorDialog.CustomColors = config.customColors;
-            }
-
-            if (colorDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-            {
-                System.Drawing.Color color = colorDialog.Color;
-                System.Windows.Media.Color newColor = new Color()
+                if (config.customColors != null)
                 {
-                    A = color.A,
-                    R = color.R,
-                    G = color.G,
-                    B = color.B
-                };
-                changeColorButton.Background = new SolidColorBrush(newColor);
-                config.customColors = colorDialog.CustomColors;
+                    colorDialog.CustomColors = config.customColors;
+                }
+
+                if (colorDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                {
+                    System.Drawing.Color color = colorDialog.Color;
+                    System.Windows.Media.Color newColor = new Color()
+                    {
+                        A = color.A,
+                        R = color.R,
+                        G = color.G,
+                        B = color.B
+                    };
+                    changeColorButton.Background = new SolidColorBrush(newColor);
+                    config.customColors = colorDialog.CustomColors;
+                }
             }
         }
 
@@ -169,23 +170,26 @@ namespace BeyondDynamo.UI
                 string filePath = dynamoNodeSettings.Source.AbsolutePath;
 
                 // Create a Save file Dialog
-                System.Windows.Forms.SaveFileDialog fileDialog = new Forms.SaveFileDialog();
-
-                // Set the Right file name for the Template file
-                fileDialog.FileName = Path.GetFileName(filePath.Replace("%20", " "));
-                fileDialog.DefaultExt = "*.xaml";
+                using (var fileDialog = new Forms.SaveFileDialog())
+                {
+                    // Set the Right file name for the Template file
+                    fileDialog.FileName = Path.GetFileName(filePath.Replace("%20", " "));
+                    fileDialog.DefaultExt = "*.xaml";
 
                 // Show dialog
-                if (fileDialog.ShowDialog() == Forms.DialogResult.OK)
-                {
-                    // Make a XML Write to write the data to the saved file
-                    XmlWriterSettings settings = new XmlWriterSettings();
-                    settings.Indent = true;
-                    XmlWriter writer = XmlWriter.Create(fileDialog.FileName, settings);
-                    XamlWriter.Save(dynamoNodeSettings, writer);
+                    if (fileDialog.ShowDialog() == Forms.DialogResult.OK)
+                    {
+                        // Make a XML Write to write the data to the saved file
+                        XmlWriterSettings settings = new XmlWriterSettings();
+                        settings.Indent = true;
+                        using (XmlWriter writer = XmlWriter.Create(fileDialog.FileName, settings))
+                        {
+                            XamlWriter.Save(dynamoNodeSettings, writer);
+                        }
 
-                    // Show instructions
-                    Forms.MessageBox.Show("Copy and Paste the File in the 'Dynamo Themes Directory'", "Restart Dynamo");
+                        // Show instructions
+                        Forms.MessageBox.Show("Copy and Paste the File in the 'Dynamo Themes Directory'", "Restart Dynamo");
+                    }
                 }
                 this.Close();
             }

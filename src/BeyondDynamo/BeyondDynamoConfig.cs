@@ -36,7 +36,7 @@ namespace BeyondDynamo
             if (File.Exists(ConfigFilePath))
             {
                 string content = File.ReadAllText(ConfigFilePath);
-                if (content != String.Empty)
+                if (!string.IsNullOrEmpty(content))
                 {
                     JToken config = JToken.Parse(content);
                     customColors = Newtonsoft.Json.JsonConvert.DeserializeObject<int[]>(config["customColors"].ToString());
@@ -62,7 +62,9 @@ namespace BeyondDynamo
             }
             else
             {
-                File.Create(ConfigFilePath);
+                using (var stream = File.Create(ConfigFilePath))
+                {
+                }
             }
         }
 

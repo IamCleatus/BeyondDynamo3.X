@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -50,7 +51,7 @@ namespace BeyondDynamo.Utils
         {
             using (StreamWriter streamWriter = new StreamWriter(filePath, true))
             {
-                string time = DateTime.Now.ToString("HH:mm:ss");
+                string time = DateTime.Now.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
                 string msg = time + ": " + message;
                 streamWriter.WriteLine(msg);
                 if (DynamoVM != null)
@@ -69,6 +70,11 @@ namespace BeyondDynamo.Utils
         /// <param name="model"></param>
         public static void KeepSelection(DynamoModel model)
         {
+            if (model == null)
+            {
+                throw new ArgumentNullException(nameof(model));
+            }
+
             foreach (dynamic item in model.CurrentWorkspace.CurrentSelection)
             {
                 model.AddToSelection(item);
@@ -83,11 +89,11 @@ namespace BeyondDynamo.Utils
         public static string DynamoCoreLanguage(string filePath)
         {
             string coreString = File.ReadAllText(filePath);
-            if (coreString.StartsWith("<"))
+            if (coreString.StartsWith("<", StringComparison.Ordinal))
             {
                 return "XML";
             }
-            else if (coreString.StartsWith("{"))
+            else if (coreString.StartsWith("{", StringComparison.Ordinal))
             {
                 return "Json";
             }
@@ -194,14 +200,17 @@ namespace BeyondDynamo.Utils
         /// <returns></returns>
         public static bool IsFileOpen(DynamoViewModel viewModel, string filePath)
         {
-            if (viewModel.Model.CurrentWorkspace.FileName == filePath)
+            if (viewModel == null)
             {
-                return true;
+                throw new ArgumentNullException(nameof(viewModel));
             }
-            else
+
+            if (filePath == null)
             {
-                return false;
+                throw new ArgumentNullException(nameof(filePath));
             }
+
+            return string.Equals(viewModel.Model.CurrentWorkspace.FileName, filePath, StringComparison.Ordinal);
         }
 
         public static Dictionary<string, NodeView> NodeViewDictionary()
@@ -233,28 +242,52 @@ namespace BeyondDynamo.Utils
                 }
             }
         }
-        public static dynamic UsePrivateInternalMethod(Object instanceObject, string methodName, List<Object> parameters = null)
+        public static dynamic UsePrivateInternalMethod(object instanceObject, string methodName, IList<object> parameters = null)
         {
-            //Get the Internal Method from the ViewCropRegionManager Type Class using Reflection
-            MethodInfo internalMethod = instanceObject.GetType().GetMethod(methodName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-
-            if (parameters == null)
+            if (instanceObject == null)
             {
-                parameters = new List<Object>();
+                throw new ArgumentNullException(nameof(instanceObject));
             }
 
-            dynamic result = internalMethod.Invoke(instanceObject, parameters.ToArray());
+            MethodInfo internalMethod = instanceObject.GetType().GetMethod(methodName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            if (internalMethod == null)
+            {
+                throw new InvalidOperationException($"Method '{methodName}' was not found on type '{instanceObject.GetType().FullName}'.");
+            }
+
+            object[] argumentValues = parameters == null ? Array.Empty<object>() : parameters.ToArray();
+            dynamic result = internalMethod.Invoke(instanceObject, argumentValues);
             return result;
         }
-        public static dynamic GetPrivateInteralProperty(Object instanceObject, string propertyName)
+        public static dynamic GetPrivateInteralProperty(object instanceObject, string propertyName)
         {
+            if (instanceObject == null)
+            {
+                throw new ArgumentNullException(nameof(instanceObject));
+            }
+
             PropertyInfo internalProperty = instanceObject.GetType().GetProperty(propertyName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            if (internalProperty == null)
+            {
+                throw new InvalidOperationException($"Property '{propertyName}' was not found on type '{instanceObject.GetType().FullName}'.");
+            }
+
             dynamic result = internalProperty.GetValue(instanceObject);
             return result;
         }
-        public static dynamic GetPrivateInteralField(Object instanceObject, string propertyName)
+        public static dynamic GetPrivateInteralField(object instanceObject, string propertyName)
         {
+            if (instanceObject == null)
+            {
+                throw new ArgumentNullException(nameof(instanceObject));
+            }
+
             FieldInfo internalField = instanceObject.GetType().GetField(propertyName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            if (internalField == null)
+            {
+                throw new InvalidOperationException($"Field '{propertyName}' was not found on type '{instanceObject.GetType().FullName}'.");
+            }
+
             dynamic result = internalField.GetValue(instanceObject);
             return result;
         }

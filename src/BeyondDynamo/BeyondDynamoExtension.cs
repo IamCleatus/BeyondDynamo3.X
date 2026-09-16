@@ -17,6 +17,8 @@ using System.Windows.Input;
 using Dynamo.Graph.Annotations;
 using BeyondDynamo.Utils;
 using System.Collections.ObjectModel;
+using System.Globalization;
+using Newtonsoft.Json;
 
 namespace BeyondDynamo
 {
@@ -108,16 +110,6 @@ namespace BeyondDynamo
 
 
         /// <summary>
-        /// Open Player Folderpath Menu Item
-        /// </summary>
-        private MenuItem OpenPlayerPath;
-
-        /// <summary>
-        /// Set Player Folderpath Menu Item
-        /// </summary>
-        private MenuItem SetPlayerPath;
-
-        /// <summary>
         /// The Menu Item to remove the binding on the current graph
         /// </summary>
         private MenuItem RemoveBindingsCurrent;
@@ -138,50 +130,95 @@ namespace BeyondDynamo
         /// </summary>
         private MenuItem OpenLog;
         
-        public void Dispose() { }
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
 
-        public void Startup(ViewStartupParams p)
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+            }
+        }
+
+        public void Startup(ViewStartupParams viewStartupParams)
         {
             BeyondDynamoUtils.SetupLog();
             BeyondDynamoUtils.LogMessage("Get Latest version Started...");
             try
             {
-
                 ServicePointManager.Expect100Continue = true;
-                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls
-                       | SecurityProtocolType.Tls11
-                       | SecurityProtocolType.Tls12
-                       | SecurityProtocolType.Ssl3;
-                List<double> releasedVersions = new List<double>();
+                ServicePointManager.SecurityProtocol = SecurityProtocolType.SystemDefault;
 
-                HttpWebRequest webRequest = WebRequest.CreateHttp(RequestUri);
+                List<double> releasedVersions = new List<double>();
+                HttpWebRequest webRequest = (HttpWebRequest)WebRequest.Create(new Uri(RequestUri));
                 webRequest.ContentType = "application/json";
                 webRequest.UserAgent = "Foo";
                 webRequest.Accept = "application/json";
                 webRequest.Method = "GET";
 
-                WebResponse response = webRequest.GetResponse();
-                Stream dataStream = response.GetResponseStream();
-
-                StreamReader reader = new StreamReader(dataStream);
-                string result = reader.ReadToEnd();
-
-                JToken githubReleases = JToken.Parse(result);
-                foreach (JObject release in githubReleases.Children())
+                using (WebResponse response = webRequest.GetResponse())
+                using (Stream dataStream = response.GetResponseStream())
+                using (StreamReader reader = new StreamReader(dataStream))
                 {
-                    JToken version = release.GetValue("tag_name");
-                    releasedVersions.Add((double)version);
+                    string result = reader.ReadToEnd();
+                    JToken githubReleases = JToken.Parse(result);
+
+                    foreach (JObject release in githubReleases.Children<JObject>())
+                    {
+                        JToken version = release["tag_name"];
+                        if (version == null) continue;
+
+                        string tagText = version.Value<string>();
+                        if (string.IsNullOrWhiteSpace(tagText)) continue;
+
+                        if (tagText.StartsWith("v", StringComparison.OrdinalIgnoreCase))
+                        {
+                            tagText = tagText.Substring(1);
+                        }
+
+                        if (double.TryParse(tagText, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsedVersion))
+                        {
+                            releasedVersions.Add(parsedVersion);
+                        }
+                    }
                 }
-                releasedVersions.Sort();
-                this.latestVersion = releasedVersions[releasedVersions.Count - 1];
+
+                if (releasedVersions.Count > 0)
+                {
+                    releasedVersions.Sort();
+                    this.latestVersion = releasedVersions[releasedVersions.Count - 1];
+                }
+                else
+                {
+                    this.latestVersion = currentVersion;
+                }
+
                 BeyondDynamoUtils.LogMessage("Get Latest verion Completed!");
             }
-            catch(Exception e)
+            catch (WebException ex)
             {
-                BeyondDynamoUtils.LogMessage("Get Latest verion Failed!\n" + e.Message);
-                this.latestVersion = this.currentVersion;
+                BeyondDynamoUtils.LogMessage("Get Latest verion Failed!\n" + ex.Message);
+                this.latestVersion = currentVersion;
             }
-            BeyondDynamoUtils.LogMessage("Latest version = " + this.latestVersion.ToString()); ;
+            catch (JsonException ex)
+            {
+                BeyondDynamoUtils.LogMessage("Get Latest verion Failed!\n" + ex.Message);
+                this.latestVersion = currentVersion;
+            }
+            catch (IOException ex)
+            {
+                BeyondDynamoUtils.LogMessage("Get Latest verion Failed!\n" + ex.Message);
+                this.latestVersion = currentVersion;
+            }
+            catch (InvalidOperationException ex)
+            {
+                BeyondDynamoUtils.LogMessage("Get Latest verion Failed!\n" + ex.Message);
+                this.latestVersion = currentVersion;
+            }
+            BeyondDynamoUtils.LogMessage("Latest version = " + this.latestVersion.ToString(CultureInfo.InvariantCulture));
 
             BeyondDynamoUtils.LogMessage("Creating Configuration File Started...");
             Directory.CreateDirectory(configFolderPath);
@@ -206,14 +243,14 @@ namespace BeyondDynamo
         {
             get
             {
-                return "Beyond Dynamo 2.0";
+                return "Beyond Dynamo 3.x";
             }
         }
 
         /// <summary>
         /// Get the CUrrent Version of Beyond Dynamo for Dynamo 2.X
         /// </summary>
-        private double currentVersion
+        private static double currentVersion
         {
             get
             {
@@ -230,11 +267,16 @@ namespace BeyondDynamo
         /// Function Which gets Called on Loading the Plug-In
         /// </summary>
         /// <param name="p">Parameters</param>
-        public void Loaded(ViewLoadedParams p)
+        public void Loaded(ViewLoadedParams viewLoadedParams)
         {
+            if (viewLoadedParams == null)
+            {
+                throw new ArgumentNullException(nameof(viewLoadedParams));
+            }
+
             BDmenuItem = new MenuItem { Header = "Beyond Dynamo" };
-            DynamoViewModel VM = p.DynamoWindow.DataContext as DynamoViewModel;
-            BeyondDynamoUtils.DynamoWindow = p.DynamoWindow;
+            DynamoViewModel VM = viewLoadedParams.DynamoWindow.DataContext as DynamoViewModel;
+            BeyondDynamoUtils.DynamoWindow = viewLoadedParams.DynamoWindow;
 
             BeyondDynamoUtils.DynamoVM = VM;
             BeyondDynamoUtils.LogMessage("Loading Menu Items Started...");
@@ -245,7 +287,7 @@ namespace BeyondDynamo
             {
                 System.Diagnostics.Process.Start("www.github.com/IamCleatus/BeyondDynamo3.X/releases");
             };
-            if (this.currentVersion < this.latestVersion)
+            if (currentVersion < this.latestVersion)
             {
                 BDmenuItem.Items.Add(LatestVersion);
             }
@@ -288,7 +330,7 @@ namespace BeyondDynamo
                 //Initiate a new Remove Trace Data window
                 RemoveTraceDataWindow window = new RemoveTraceDataWindow()
                 {
-                    Owner = p.DynamoWindow,
+                    Owner = viewLoadedParams.DynamoWindow,
                     viewModel = VM
                 };
                 window.Left = window.Owner.Left + 400;
@@ -322,12 +364,12 @@ namespace BeyondDynamo
                     //Get the selected filePath
                     string DynamoFilepath = fileDialog.FileName;
                     string DynamoString = File.ReadAllText(DynamoFilepath);
-                    if (DynamoString.StartsWith("<"))
+                    if (DynamoString.StartsWith("<", StringComparison.Ordinal))
                     {
                         //Call the SortInputNodes Function
                         BeyondDynamoFunctions.SortInputOutputNodesXML(fileDialog.FileName);
                     }
-                    else if (DynamoString.StartsWith("{"))
+                    else if (DynamoString.StartsWith("{", StringComparison.Ordinal))
                     {
                         //Call the SortInputNodes Function
                         BeyondDynamoFunctions.SortInputOutputNodesJson(fileDialog.FileName);
@@ -363,7 +405,7 @@ namespace BeyondDynamo
                 WorkspaceModel workspaceModel = workspaceViewModel.Model;
                 string filePath = workspaceModel.FileName;
                 bool succes = false;
-                if (filePath == string.Empty)
+                if (string.IsNullOrEmpty(filePath))
                 {
                     Forms.MessageBox.Show("Save the File before running this command");
                     return;
@@ -530,7 +572,7 @@ namespace BeyondDynamo
                 try
                 {
 
-                    p.AddToExtensionsSideBar(panelView, toolspacecontrol);
+                    viewLoadedParams.AddToExtensionsSideBar(panelView, toolspacecontrol);
                 }
                 catch (Exception e)
                 {
@@ -566,7 +608,7 @@ namespace BeyondDynamo
                 }
             };
 
-            if (double.Parse(VM.Version.Substring(0,3)) >= 2.4)
+            if (double.TryParse(VM.Version.Substring(0, 3), NumberStyles.Float, CultureInfo.InvariantCulture, out double dynamoVersion) && dynamoVersion >= 2.4)
             {
                 BDmenuItem.Items.Add(BDToolspace);
             }
@@ -601,7 +643,7 @@ namespace BeyondDynamo
             AboutItem.Click += (sender, args) =>
             {
                 //Show the About dialog
-                About about = new About(this.currentVersion.ToString());
+                About about = new About(currentVersion.ToString(CultureInfo.InvariantCulture));
                 about.Show();
             };
             AboutItem.ToolTip = new ToolTip()
@@ -618,7 +660,7 @@ namespace BeyondDynamo
             OpenLog.ToolTip = new ToolTip() { Content = "Opens the Log file for Beyond Dynamo. \nThis is where all the activities are logged for Beyond Dynamo." };
             //BDmenuItem.Items.Add(OpenLog);
 
-            p.dynamoMenu.Items.Add(BDmenuItem);
+            viewLoadedParams.dynamoMenu.Items.Add(BDmenuItem);
 
             #region ADD GRAPH DESCRIPTION
 

@@ -45,8 +45,44 @@ dotnet build .\src\BeyondDynamoInstaller\BeyondDynamoInstaller.csproj -p:RevitVe
 ## Install for Revit
 
 1. Build the plugin project for the target Revit version.
-2. Copy the compiled `BeyondDynamo.dll` to the Dynamo extension folder used by that Revit installation.
-3. Place the XML extension definition file alongside the DLL if it is not already copied by the build output.
+2. Sign the resulting assembly if your environment enforces certificate validation:
+
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File .\sign-package.ps1 -ProjectPath "src\BeyondDynamo\BeyondDynamo.csproj" -AssemblyPath "src\BeyondDynamo\bin\Debug\BeyondDynamo.dll" -Subject "CN=BeyondDynamo Package" -CreateCertificateIfMissing
+   ```
+
+3. Copy the compiled `BeyondDynamo.dll` to the Dynamo extension folder used by that Revit installation.
+4. Place the XML extension definition file alongside the DLL if it is not already copied by the build output.
+
+When Windows or Revit checks the assembly certificate before loading a package, a trusted local code-signing certificate helps avoid certificate warnings or blocked package loading.
+
+### Official CA signing for public package distribution
+
+For public upload, official Authenticode signing is recommended. A self-signed cert is only suitable for local testing and developer environments. It does not provide the public trust level required for a package that will be hosted online or downloaded by third parties.
+
+Recommended flow:
+
+1. Purchase an Authenticode code-signing certificate from a CA such as:
+   - DigiCert
+   - Sectigo / Comodo
+   - GlobalSign
+   - GoGetSSL
+2. Install the certificate into your personal or machine certificate store.
+3. Export or locate the certificate with the private key.
+4. Sign the DLL using the official cert thumbprint:
+
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File .\sign-package.ps1 -ProjectPath "src\BeyondDynamo\BeyondDynamo.csproj" -AssemblyPath "src\BeyondDynamo\bin\Debug\BeyondDynamo.dll" -CertificateThumbprint "YOUR_CERT_THUMBPRINT" -TimestampServer "http://timestamp.digicert.com"
+   ```
+
+5. Rebuild and repackage the final zipped package after signing.
+6. Upload the package only after the assembly and the package archive are both signed and timestamped.
+
+Important:
+
+- `New-SelfSignedCertificate` is for local testing only.
+- Public package hosting should always use a CA-issued Authenticode certificate.
+- The timestamp server should come from the issuing CA and should be supported by the certificate chain.
 
 Typical install locations for Dynamo-based Revit installs:
 

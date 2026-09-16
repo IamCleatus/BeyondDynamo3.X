@@ -23,12 +23,6 @@ namespace BeyondDynamo.UI
     /// </summary>
     public partial class ToolSpaceControl : ContentControl
     {
-
-        private List<NodeModel> completedNodes = new List<NodeModel>();
-        private List<NodeModel> warningNodes = new List<NodeModel>();
-        private List<NodeModel> errorNodes = new List<NodeModel>();
-
-
         //These are all the nodes in the dynamo model
         private List<NodeModel> nodes { get; set; }
 
@@ -171,17 +165,17 @@ namespace BeyondDynamo.UI
 
         private void Search()
         {
-            string searchTerm = searchBox.Text;
+            string searchTerm = searchBox.Text ?? string.Empty;
 
             this.nodeStacker.Children.Clear();
             this.foundNodes.Clear();
-            if (searchTerm != "")
+            if (!string.IsNullOrEmpty(searchTerm))
             {
                 for (int i = 0; i < nodeLabels.Count; i++)
                 {
                     SearchNodeLabel label = nodeLabels[i];
-                    string name = label.NodeModel.Name;
-                    if (name.ToUpper().Contains(searchTerm.ToUpper()))
+                    string name = label.NodeModel.Name ?? string.Empty;
+                    if (name.IndexOf(searchTerm, StringComparison.OrdinalIgnoreCase) >= 0)
                     {
                         this.nodeStacker.Children.Add(label);
                         this.foundNodes.Add(nodes[i]);

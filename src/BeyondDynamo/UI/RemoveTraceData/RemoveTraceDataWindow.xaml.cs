@@ -40,15 +40,17 @@ namespace BeyondDynamo.UI
         /// <param name="e"></param>
         private void SelectFolderButton_Click(object sender, RoutedEventArgs e)
         {
-            FolderBrowserDialog browserDialog = new FolderBrowserDialog();
-            browserDialog.ShowNewFolderButton = false;
-            browserDialog.SelectedPath = null;
-            if (browserDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            using (FolderBrowserDialog browserDialog = new FolderBrowserDialog())
             {
-                if (browserDialog.SelectedPath != null)
+                browserDialog.ShowNewFolderButton = false;
+                browserDialog.SelectedPath = null;
+                if (browserDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
                 {
-                    selectedDirectory = browserDialog.SelectedPath;
-                    selectedDirectoryLabel.Text = selectedDirectory;
+                    if (browserDialog.SelectedPath != null)
+                    {
+                        selectedDirectory = browserDialog.SelectedPath;
+                        selectedDirectoryLabel.Text = selectedDirectory;
+                    }
                 }
             }
         }

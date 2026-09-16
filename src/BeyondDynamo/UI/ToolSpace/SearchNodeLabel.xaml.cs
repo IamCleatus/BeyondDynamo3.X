@@ -25,10 +25,15 @@ namespace BeyondDynamo.UI
         public NodeModel NodeModel { get; }
         public SearchNodeLabel(NodeModel node)
         {
+            if (node == null)
+            {
+                throw new ArgumentNullException(nameof(node));
+            }
+
             InitializeComponent();
             NodeModel = node;
             this.ErrorDescriptionLabel.Visibility = Visibility.Hidden;
-            if (node.State == ElementState.Warning | node.State == ElementState.PersistentWarning)
+            if (node.State == ElementState.Warning || node.State == ElementState.PersistentWarning)
             {
                 this.ErrorDescriptionLabel.Text = BeyondDynamo.BeyondDynamoFunctions.GetNodeViewModel(node).ErrorBubble.FullContent;
                 this.ErrorDescriptionLabel.Visibility = Visibility.Visible;
