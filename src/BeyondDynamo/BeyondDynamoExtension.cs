@@ -351,33 +351,51 @@ namespace BeyondDynamo
             OrderPlayerInput = new MenuItem { Header = "Order Input/Output Nodes" };
             OrderPlayerInput.Click += (sender, args) =>
             {
-                //Open a FileBrowser Dialog so the user can select a Dynamo Graph
-                System.Windows.Forms.OpenFileDialog fileDialog = new System.Windows.Forms.OpenFileDialog();
-                fileDialog.Filter = "Dynamo Files (*.dyn)|*.dyn";
-                if (fileDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                string dynamoFilepath = null;
+                if (VM.Model.CurrentWorkspace != null && !string.IsNullOrWhiteSpace(VM.Model.CurrentWorkspace.FileName) && File.Exists(VM.Model.CurrentWorkspace.FileName))
                 {
-                    if (BeyondDynamoUtils.IsFileOpen(VM, fileDialog.FileName))
+                    dynamoFilepath = VM.Model.CurrentWorkspace.FileName;
+                }
+
+                if (string.IsNullOrWhiteSpace(dynamoFilepath))
+                {
+                    using (var fileDialog = new System.Windows.Forms.OpenFileDialog())
                     {
-                        Forms.MessageBox.Show("Please close the file before using this command", "Order Input/Output Nodes");
-                        return;
+                        fileDialog.Filter = "Dynamo Files (*.dyn)|*.dyn";
+                        if (fileDialog.ShowDialog() != System.Windows.Forms.DialogResult.OK)
+                        {
+                            return;
+                        }
+
+                        dynamoFilepath = fileDialog.FileName;
                     }
-                    //Get the selected filePath
-                    string DynamoFilepath = fileDialog.FileName;
-                    string DynamoString = File.ReadAllText(DynamoFilepath);
-                    if (DynamoString.StartsWith("<", StringComparison.Ordinal))
-                    {
-                        //Call the SortInputNodes Function
-                        BeyondDynamoFunctions.SortInputOutputNodesXML(fileDialog.FileName);
-                    }
-                    else if (DynamoString.StartsWith("{", StringComparison.Ordinal))
-                    {
-                        //Call the SortInputNodes Function
-                        BeyondDynamoFunctions.SortInputOutputNodesJson(fileDialog.FileName);
-                    }
-                    else
-                    {
-                        return;
-                    }
+                }
+
+                if (string.IsNullOrWhiteSpace(dynamoFilepath) || !File.Exists(dynamoFilepath))
+                {
+                    Forms.MessageBox.Show("No active Dynamo project file was found, and no valid file was selected.", "Order Input/Output Nodes");
+                    return;
+                }
+
+                bool isCurrentWorkspace = string.Equals(VM.Model.CurrentWorkspace?.FileName, dynamoFilepath, StringComparison.OrdinalIgnoreCase);
+                if (!isCurrentWorkspace && BeyondDynamoUtils.IsFileOpen(VM, dynamoFilepath))
+                {
+                    Forms.MessageBox.Show("Please close the file before using this command", "Order Input/Output Nodes");
+                    return;
+                }
+
+                string DynamoString = File.ReadAllText(dynamoFilepath);
+                if (DynamoString.StartsWith("<", StringComparison.Ordinal))
+                {
+                    BeyondDynamoFunctions.SortInputOutputNodesXML(dynamoFilepath);
+                }
+                else if (DynamoString.StartsWith("{", StringComparison.Ordinal))
+                {
+                    BeyondDynamoFunctions.SortInputOutputNodesJson(dynamoFilepath);
+                }
+                else
+                {
+                    return;
                 }
             };
             OrderPlayerInput.ToolTip = new ToolTip()

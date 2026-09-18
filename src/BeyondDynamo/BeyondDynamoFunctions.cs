@@ -146,34 +146,57 @@ namespace BeyondDynamo
             if (viewModel == null) throw new ArgumentNullException(nameof(viewModel));
 
             WorkspaceModel model = viewModel.Model.CurrentWorkspace;
-            using (var fileDialog = new System.Windows.Forms.OpenFileDialog())
-            {
-                fileDialog.Filter = "Dynamo Files (*.dyn)|*.dyn";
-                if (fileDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-                {
-                    //Get the selected filePath
-                    string DynamoFilepath = fileDialog.FileName;
+            string dynamoFilepath = null;
 
-                    string version = BeyondDynamoUtils.DynamoCoreLanguage(DynamoFilepath);
-                    if (version == "XML")
+            if (model != null && !string.IsNullOrWhiteSpace(model.FileName) && File.Exists(model.FileName))
+            {
+                dynamoFilepath = model.FileName;
+            }
+
+            if (string.IsNullOrWhiteSpace(dynamoFilepath))
+            {
+                using (var fileDialog = new System.Windows.Forms.OpenFileDialog())
+                {
+                    fileDialog.Filter = "Dynamo Files (*.dyn)|*.dyn";
+                    if (fileDialog.ShowDialog() != System.Windows.Forms.DialogResult.OK)
                     {
-                        ImportXMLDynamo(viewModel, DynamoFilepath);
-                    }
-                    else if (version == "Json")
-                    {
-                        ImportJsonDynamo(viewModel, DynamoFilepath);
-                    }
-                    else
-                    {
-                        Forms.MessageBox.Show("The Selected File is not Supported", "Beyond Dynamo");
                         return;
                     }
 
-                    //Zoom to the imported Script
-                    DelegateCommand fitView = viewModel.FitViewCommand;
-                    fitView.Execute(viewModel.CurrentSpaceViewModel);
+                    dynamoFilepath = fileDialog.FileName;
                 }
             }
+
+            if (string.IsNullOrWhiteSpace(dynamoFilepath) || !File.Exists(dynamoFilepath))
+            {
+                Forms.MessageBox.Show("No active Dynamo project file was found, and no valid file was selected.", "Beyond Dynamo");
+                return;
+            }
+
+            bool isCurrentWorkspace = string.Equals(viewModel.Model.CurrentWorkspace?.FileName, dynamoFilepath, StringComparison.OrdinalIgnoreCase);
+            if (!isCurrentWorkspace && BeyondDynamoUtils.IsFileOpen(viewModel, dynamoFilepath))
+            {
+                Forms.MessageBox.Show("Please close the file before importing it into the current graph.", "Beyond Dynamo");
+                return;
+            }
+
+            string version = BeyondDynamoUtils.DynamoCoreLanguage(dynamoFilepath);
+            if (version == "XML")
+            {
+                ImportXMLDynamo(viewModel, dynamoFilepath);
+            }
+            else if (version == "Json")
+            {
+                ImportJsonDynamo(viewModel, dynamoFilepath);
+            }
+            else
+            {
+                Forms.MessageBox.Show("The Selected File is not Supported", "Beyond Dynamo");
+                return;
+            }
+
+            DelegateCommand fitView = viewModel.FitViewCommand;
+            fitView.Execute(viewModel.CurrentSpaceViewModel);
         }
 
         /// <summary>
